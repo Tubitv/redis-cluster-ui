@@ -6,13 +6,15 @@
     <link rel="stylesheet" href="main.css">
   </head>
   <body>
-    <h1>Hello World!</h1>
-    <!-- All of the Node.js APIs are available in this renderer process. -->
-    We are using Node.js <script>document.write(process.versions.node)</script>,
-    Chromium <script>document.write(process.versions.chrome)</script>,
-    and Electron <script>document.write(process.versions.electron)</script>.
+    <Button>Create an new Cluster</Button>
+    <Button>Connect to an Cluster</Button>
 
-    <script src="d3.v5.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="vendor/semantic.min.css">
+    <script>
+      window.$ = window.jQuery = require('./vendor/jquery-3.1.1.min.js')
+    </script>
+    <script src="vendor/semantic.min.js"></script>
+    <script src="vendor/d3.v5.min.js"></script>
     <script>
       require('./renderer.js')
     </script>
