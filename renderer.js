@@ -1,16 +1,10 @@
-const util = require('util')
-const { exec, spawn } = require('child_process')
-const { createCluster: redisCreateCluster, getClusterNodes: redisGetClusterNodes, addNode: redisAddNode } = require('./redis')
-const { draw } = require('./topology')
-
-const execAsync = util.promisify(exec)
-
-window.spawn = spawn
-window.execAsync = execAsync
+const redis = require('./redis')
+const { draw, emitter } = require('./topology')
 
 let nodes = []
 
 connectCluster('127.0.0.1:7001')
+window.localStorage.debug = 'redis-cluster-ui:*'
 
 // $('button.create-cluster').click(() => {
 //   $('.ui.modal textarea').val(['127.0.0.1:7001', '127.0.0.1:7002', '127.0.0.1:7003'].join('\n'))
@@ -28,6 +22,32 @@ $('button.add-node').click(showModal('Add Node', (tuple) => {
   addNode(tuple)
 }))
 
+emitter.on('addLink', addLink)
+
+async function createCluster (tuples) {
+  await redis.createCluster(tuples)
+  nodes = await redis.getClusterNodes(tuples[0])
+  draw(nodes)
+}
+
+async function connectCluster (tuple) {
+  nodes = await redis.getClusterNodes(tuple)
+  draw(nodes)
+}
+
+async function addNode (tuple) {
+  await redis.addNode(tuple, nodes[0].tuple)
+  nodes = await redis.getClusterNodes(nodes[0].tuple)
+  draw(nodes)
+}
+
+async function addLink (from, to) {
+  const node = nodes.find(node => node.tuple === to)
+  await redis.replicate(from, node.id)
+  nodes = await redis.getClusterNodes(nodes[0].tuple)
+  draw(nodes)
+}
+
 function showModal (action, callback) {
   return function () {
     $('.ui.modal .header').html(action)
@@ -41,21 +61,4 @@ function showModal (action, callback) {
         }
       })
   }
-}
-
-async function createCluster (tuples) {
-  await redisCreateCluster(tuples)
-  nodes = await redisGetClusterNodes(tuples[0])
-  draw(nodes)
-}
-
-async function connectCluster (tuple) {
-  nodes = await redisGetClusterNodes(tuple)
-  draw(nodes)
-}
-
-async function addNode (tuple) {
-  await redisAddNode(tuple, nodes[0].tuple)
-  nodes = await redisGetClusterNodes(nodes[0].tuple)
-  draw(nodes)
 }

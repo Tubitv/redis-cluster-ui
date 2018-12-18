@@ -1,4 +1,7 @@
+const EventEmitter = require('events')
 const debug = require('debug')('redis-cluster-ui:topology')
+
+const emitter = new EventEmitter()
 
 // set up SVG for D3
 const width = 960
@@ -227,7 +230,8 @@ function restart () {
       if (link) {
         link[isRight ? 'right' : 'left'] = true
       } else {
-        links.push({ source, target, left: !isRight, right: isRight })
+        // links.push({ source, target, left: !isRight, right: isRight })
+        emitter.emit('addLink', mousedownNode.id, mouseupNode.id)
       }
 
       // select new link
@@ -401,3 +405,4 @@ exports.draw = function (_nodes) {
 
   restart()
 }
+exports.emitter = emitter

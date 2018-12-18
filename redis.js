@@ -57,7 +57,15 @@ async function addNode (newTuple, oldTuple) {
   const { stdout, stderr } = await execAsync(`redis-cli --cluster add-node ${newTuple} ${oldTuple}`)
   debug('addNode', stdout, stderr)
   // wait for node broadcast to whole cluster
-  await delay(100)
+  await delay(500)
+  return stdout
+}
+
+async function replicate (tuple, nodeId) {
+  const [host, port] = tuple.split(':')
+  const { stdout, stderr } = await execAsync(`redis-cli -h ${host} -p ${port} CLUSTER REPLICATE ${nodeId}`)
+  debug('replicate', stdout, stderr)
+  await delay(500)
   return stdout
 }
 
@@ -67,4 +75,4 @@ async function delay (timeout) {
   })
 }
 
-module.exports = { createCluster, getClusterNodes, addNode }
+module.exports = { createCluster, getClusterNodes, addNode, replicate }
