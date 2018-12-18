@@ -52,6 +52,7 @@ function showModal (action, callback) {
   return function () {
     $('.ui.modal .header').html(action)
     $('.ui.modal .actions .right').html(action)
+    $('.ui.modal textarea').val('')
     $('.ui.modal')
       .modal('show')
       .modal({
