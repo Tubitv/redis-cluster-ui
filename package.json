@@ -4,6 +4,7 @@
   "description": "An FrontEnd to easy Redis Cluster management",
   "main": "main.js",
   "dependencies": {
+    "debug": "^4.1.0",
     "electron": "^3.0.12",
     "ioredis": "^4.3.0",
     "lodash": "^4.17.11"

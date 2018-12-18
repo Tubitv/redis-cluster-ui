@@ -1,3 +1,5 @@
+const debug = require('debug')('redis-cluster-ui:topology')
+
 // set up SVG for D3
 const width = 960
 const height = 500
@@ -24,7 +26,7 @@ const svg = d3.select('.topology')
 // ]
 let nodes = []
 let links = []
-let lastNodeId = 2
+// let lastNodeId = 2
 
 // init D3 force layout
 const force = d3.forceSimulation()
@@ -388,9 +390,8 @@ exports.draw = function (_nodes) {
     }
     return { id: node.tuple, reflexive: node.flags === 'master' }
   })
-  console.log(links)
-  console.log(nodes)
-  restart()
+  debug('links', links)
+  debug('nodes', nodes)
 
-  // { source: nodes[0], target: nodes[1], left: false, right: true },
+  restart()
 }
