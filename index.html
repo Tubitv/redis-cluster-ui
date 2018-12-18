@@ -1,22 +1,96 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <meta charset="UTF-8">
     <title>Redis Cluster UI</title>
     <link rel="stylesheet" href="main.css">
-  </head>
-  <body>
-    <Button>Create an new Cluster</Button>
-    <Button>Connect to an Cluster</Button>
+</head>
+<body>
 
-    <link rel="stylesheet" type="text/css" href="vendor/semantic.min.css">
-    <script>
-      window.$ = window.jQuery = require('./vendor/jquery-3.1.1.min.js')
-    </script>
-    <script src="vendor/semantic.min.js"></script>
-    <script src="vendor/d3.v5.min.js"></script>
-    <script>
-      require('./renderer.js')
-    </script>
-  </body>
+<div class="ui fixed inverted tiny menu">
+    <a href="#" class="item">
+        <button class="ui orange button create-cluster">Create Cluster</button>
+    </a>
+    <a href="#" class="item">
+        <button class="ui button connect-cluster">Connect Cluster</button>
+    </a>
+</div>
+
+<div class="ui grid">
+    <div class="four wide column" style="padding: 30px;">
+        <div class="ui items">
+            <div class="item">
+                <button class="ui button">Add Node</button>
+            </div>
+            <div class="item">
+                <button class="ui button">Delete Node</button>
+            </div>
+        </div>
+    </div>
+    <div class="twelve wide column">
+        <div class="topology"></div>
+    </div>
+</div>
+
+<div class="ui modal create-cluster">
+    <div class="header">
+        Create Cluster
+    </div>
+    <div class="content">
+        <div class="description">
+            <div class="ui form">
+                <div class="field">
+                    <label>Redis Host:Port tuples</label>
+                    <textarea></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui black deny button">
+            Cancel
+        </div>
+        <div class="ui positive right labeled icon button">
+            Create Cluster
+            <i class="checkmark icon"></i>
+        </div>
+    </div>
+</div>
+
+<div class="ui modal connect-cluster">
+    <div class="header">
+        Connect Cluster
+    </div>
+    <div class="content">
+        <div class="description">
+            <div class="ui form">
+                <div class="field">
+                    <label>Redis Host:Port tuple</label>
+                    <div class="ui input"><input type="text" placeholder="Search..."></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui black deny button">
+            Cancel
+        </div>
+        <div class="ui positive right labeled icon button">
+            Connect Cluster
+            <i class="checkmark icon"></i>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" type="text/css" href="vendor/semantic.min.css">
+<script>
+  window.$ = window.jQuery = require('./vendor/jquery-3.1.1.min.js')
+</script>
+<script src="vendor/semantic.min.js"></script>
+<script src="vendor/d3.v5.min.js"></script>
+<script>
+  require('./renderer.js')
+</script>
+
+</body>
 </html>
