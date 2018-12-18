@@ -94,8 +94,20 @@ async function replicate (tuple, nodeId) {
   return stdout
 }
 
+async function rebalance (tuple) {
+  const command = `redis-cli --cluster rebalance ${tuple} --cluster-use-empty-masters`
+  const { stdout, stderr } = await execAsync(command)
+  debug('rebalance', stdout, stderr)
+
+  if (isCommandFailed(stdout)) {
+    throw new CommandError(command, 0, stdout, stderr)
+  }
+
+  return stdout
+}
+
 function isCommandFailed (stdout) {
   return stdout.indexOf('ERR') === 0
 }
 
-module.exports = { createCluster, getClusterNodes, addNode, replicate }
+module.exports = { createCluster, getClusterNodes, addNode, replicate, rebalance }

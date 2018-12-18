@@ -23,6 +23,12 @@ $('button.add-node').click(showModal('Add Node', (tuple) => {
   addNode(tuple).catch(errorHandler)
 }))
 
+$('.button.rebalance').click(() => {
+  if (window.confirm('Do you really want to rebalance slots and use empty masters?')) {
+    rebalance().catch(errorHandler)
+  }
+})
+
 emitter.on('addLink', (from, to) => {
   addLink(from, to).catch(errorHandler)
 })
@@ -44,6 +50,10 @@ async function addNode (tuple) {
 
 async function addLink (from, to) {
   await redis.replicate(from.tuple, to.id)
+}
+
+async function rebalance () {
+  await redis.rebalance(nodes[0].tuple)
 }
 
 setInterval(async () => {

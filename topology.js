@@ -33,9 +33,9 @@ let links = []
 // init D3 force layout
 const force = d3.forceSimulation()
   .force('link', d3.forceLink().id((d) => d.id).distance(150))
-  .force('charge', d3.forceManyBody().strength(-800))
+  .force('charge', d3.forceManyBody().strength(-500))
   .force('x', d3.forceX(width / 2))
-  .force('y', d3.forceY().y((d) => d.isMaster ? height / 3 : height))
+  .force('y', d3.forceY().y((d) => d.isMaster ? height / 3 : height - 100))
   .on('tick', tick)
 
 // init D3 drag support
@@ -167,7 +167,7 @@ function restart () {
   circle.exit().remove()
 
   // add new nodes
-  const g = circle.enter().append('svg:g')
+  let g = circle.enter().append('svg:g')
 
   g.append('svg:circle')
     .attr('class', 'node')
@@ -243,10 +243,17 @@ function restart () {
   g.append('svg:text')
     .attr('x', 0)
     .attr('y', (d) => {
-      return d.isMaster ? -20 : 30
+      return d.isMaster ? -35 : 30
     })
     .attr('class', 'id')
     .text((d) => d.tuple)
+  g.append('svg:text')
+    .attr('x', 0)
+    .attr('y', (d) => {
+      return d.isMaster ? -20 : 30
+    })
+    .attr('class', 'id')
+    .text((d) => d.slots)
 
   circle = g.merge(circle)
 
