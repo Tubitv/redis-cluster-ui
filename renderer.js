@@ -1,3 +1,4 @@
+const { isEqual } = require('lodash')
 const redis = require('./redis')
 const { draw, emitter } = require('./topology')
 
@@ -39,16 +40,22 @@ async function connectCluster (tuple) {
 
 async function addNode (tuple) {
   await redis.addNode(tuple, nodes[0].tuple)
-  nodes = await redis.getClusterNodes(nodes[0].tuple)
-  draw(nodes)
 }
 
 async function addLink (from, to) {
   const node = nodes.find(node => node.tuple === to)
   await redis.replicate(from, node.id)
-  nodes = await redis.getClusterNodes(nodes[0].tuple)
-  draw(nodes)
 }
+
+setInterval(async () => {
+  if (nodes.length) {
+    const newNodes = await redis.getClusterNodes(nodes[0].tuple)
+    if (!isEqual(newNodes, nodes)) {
+      draw(newNodes)
+      nodes = newNodes
+    }
+  }
+}, 1000)
 
 function errorHandler (err) {
   window.alert(err.stdout + '\n' + err.stderr)

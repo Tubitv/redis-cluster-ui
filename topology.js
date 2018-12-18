@@ -381,25 +381,37 @@ d3.select(window)
   .on('keyup', keyup)
 restart()
 
+function getNode (_node) {
+  return { id: _node.tuple, reflexive: _node.flags.includes('master') }
+}
+
 exports.draw = function (_nodes) {
-  links = []
-  nodes = _nodes.map(node => {
-    if (node.flags.includes('slave')) {
-      const from = node.tuple
-      const to = _nodes.find(n => n.id === node.master).tuple
+  // add new nodes
+  _nodes.forEach(_node => {
+    const newNode = getNode(_node)
+    const oldNode = nodes.find(node => node.id === newNode.id)
+    if (!oldNode) {
+      nodes.push(newNode)
+    } else {
+      // update other fields for existing nodes
+      oldNode.reflexive = newNode.reflexive
+    }
+  })
+
+  // remove old nodes
+  nodes = nodes.filter(node => _nodes.find(_node => _node.tuple === node.id))
+
+  links = _nodes
+    .filter(_node => _node.flags.includes('slave'))
+    .map(_node => {
+      const from = _node.tuple
+      const to = _nodes.find(n => n.id === _node.master).tuple
       const isRight = from < to
       const source = isRight ? from : to
       const target = isRight ? to : from
+      return { source, target, left: !isRight, right: isRight }
+    })
 
-      links.push({
-        source,
-        target,
-        left: !isRight,
-        right: isRight
-      })
-    }
-    return { id: node.tuple, reflexive: node.flags.includes('master') }
-  })
   debug('links', links)
   debug('nodes', nodes)
 

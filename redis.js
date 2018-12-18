@@ -52,16 +52,20 @@ async function getClusterNodes (tuple) {
     throw new CommandError(command, 0, stdout, stderr)
   }
 
-  return stdout.trim().split('\n').map(line => {
-    let [id, tuple, flags, master, pingSent, pongRecv, configEpoch, linkState, ...slots] = line.split(' ')
-    tuple = tuple.split('@')[0]
-    if (tuple[0] === ':') {
-      tuple = '127.0.0.1' + tuple
-    }
-    flags = flags.split(',')
-    slots = slots.map(slot => slot.split('-'))
-    return { id, tuple, flags, master, pingSent, pongRecv, configEpoch, linkState, slots }
-  })
+  return stdout
+    .trim()
+    .split('\n')
+    .map(line => {
+      let [id, tuple, flags, master, pingSent, pongRecv, configEpoch, linkState, ...slots] = line.split(' ')
+      tuple = tuple.split('@')[0]
+      if (tuple[0] === ':') {
+        tuple = '127.0.0.1' + tuple
+      }
+      flags = flags.split(',')
+      slots = slots.map(slot => slot.split('-'))
+      return { id, tuple, flags, master, pingSent, pongRecv, configEpoch, linkState, slots }
+    })
+    .sort((a, b) => a.tuple > b.tuple)
 }
 
 async function addNode (newTuple, oldTuple) {
@@ -73,8 +77,6 @@ async function addNode (newTuple, oldTuple) {
     throw new CommandError(command, 0, stdout, stderr)
   }
 
-  // wait for node broadcast to whole cluster
-  await delay(500)
   return stdout
 }
 
@@ -88,14 +90,7 @@ async function replicate (tuple, nodeId) {
     throw new CommandError(command, 0, stdout, stderr)
   }
 
-  await delay(500)
   return stdout
-}
-
-async function delay (timeout) {
-  return new Promise(resolve => {
-    setTimeout(resolve, timeout)
-  })
 }
 
 function isCommandFailed (stdout) {
