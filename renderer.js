@@ -43,8 +43,7 @@ async function addNode (tuple) {
 }
 
 async function addLink (from, to) {
-  const node = nodes.find(node => node.tuple === to)
-  await redis.replicate(from, node.id)
+  await redis.replicate(from.tuple, to.id)
 }
 
 setInterval(async () => {

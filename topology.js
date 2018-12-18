@@ -33,9 +33,9 @@ let links = []
 // init D3 force layout
 const force = d3.forceSimulation()
   .force('link', d3.forceLink().id((d) => d.id).distance(150))
-  .force('charge', d3.forceManyBody().strength(-500))
+  .force('charge', d3.forceManyBody().strength(-800))
   .force('x', d3.forceX(width / 2))
-  .force('y', d3.forceY().y((d) => d.reflexive ? height / 3 : height))
+  .force('y', d3.forceY().y((d) => d.isMaster ? height / 3 : height))
   .on('tick', tick)
 
 // init D3 drag support
@@ -160,8 +160,8 @@ function restart () {
 
   // update existing nodes (reflexive & selected visual states)
   circle.selectAll('circle')
-    .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.reflexive)).brighter().toString() : colors(d.reflexive))
-    .classed('reflexive', (d) => d.reflexive)
+    .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.isMaster)).brighter().toString() : colors(d.isMaster))
+    .classed('reflexive', (d) => d.isMaster)
 
   // remove old nodes
   circle.exit().remove()
@@ -172,9 +172,9 @@ function restart () {
   g.append('svg:circle')
     .attr('class', 'node')
     .attr('r', 12)
-    .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.reflexive)).brighter().toString() : colors(d.reflexive))
-    .style('stroke', (d) => d3.rgb(colors(d.reflexive)).darker().toString())
-    .classed('reflexive', (d) => d.reflexive)
+    .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.isMaster)).brighter().toString() : colors(d.isMaster))
+    .style('stroke', (d) => d3.rgb(colors(d.isMaster)).darker().toString())
+    .classed('reflexive', (d) => d.isMaster)
     .on('mouseover', function (d) {
       if (!mousedownNode || d === mousedownNode) return
       // enlarge target node
@@ -230,7 +230,7 @@ function restart () {
         link[isRight ? 'right' : 'left'] = true
       } else {
         // links.push({ source, target, left: !isRight, right: isRight })
-        emitter.emit('addLink', mousedownNode.id, mouseupNode.id)
+        emitter.emit('addLink', mousedownNode, mouseupNode)
       }
 
       // select new link
@@ -243,10 +243,10 @@ function restart () {
   g.append('svg:text')
     .attr('x', 0)
     .attr('y', (d) => {
-      return d.reflexive ? -20 : 30
+      return d.isMaster ? -20 : 30
     })
     .attr('class', 'id')
-    .text((d) => d.id)
+    .text((d) => d.tuple)
 
   circle = g.merge(circle)
 
@@ -339,7 +339,7 @@ function keydown () {
     case 82: // R
       if (selectedNode) {
         // toggle node reflexivity
-        selectedNode.reflexive = !selectedNode.reflexive
+        selectedNode.isMaster = !selectedNode.isMaster
       } else if (selectedLink) {
         // set link direction to right only
         selectedLink.left = false
@@ -374,7 +374,7 @@ function findNode (id) {
 
 function getLink (items, item) {
   const from = findNode(item.id)
-  const to = findNode(items.find(n => n.hash === item.master).id)
+  const to = findNode(items.find(n => n.id === item.master).id)
   const isRight = from.id < to.id
   const source = isRight ? from : to
   const target = isRight ? to : from
@@ -382,11 +382,6 @@ function getLink (items, item) {
 }
 
 exports.draw = function (items) {
-  // unify the meaning of id in renderer.js and topology.js
-  items = items.map(item => {
-    return { id: item.tuple, hash: item.id, master: item.master, reflexive: item.flags.includes('master') }
-  })
-
   // add new nodes
   items.forEach(item => {
     const oldNode = findNode(item.id)
@@ -394,7 +389,9 @@ exports.draw = function (items) {
       nodes.push(item)
     } else {
       // update other fields for existing nodes
-      oldNode.reflexive = item.reflexive
+      for (let prop in item) {
+        oldNode[prop] = item[prop]
+      }
     }
   })
 
@@ -403,7 +400,7 @@ exports.draw = function (items) {
 
   // add new links
   items
-    .filter(item => !item.reflexive)
+    .filter(item => !item.isMaster)
     .forEach(item => {
       const newLink = getLink(items, item)
       const oldLink = links.find(link => link.source.id === newLink.source.id && link.target.id === newLink.target.id)
@@ -415,7 +412,7 @@ exports.draw = function (items) {
   // remove old links
   links = links.filter(link => {
     return items.find(item => {
-      if (!item.reflexive) {
+      if (!item.isMaster) {
         const newLink = getLink(items, item)
         return link.source.id === newLink.source.id && link.target.id === newLink.target.id
       }
