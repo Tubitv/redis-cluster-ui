@@ -11,18 +11,20 @@ window.localStorage.debug = 'redis-cluster-ui:*'
 // })
 $('button.create-cluster').click(showModal('Create Cluster', (content) => {
   const tuples = content.split(/\s+/).map(s => s.trim())
-  createCluster(tuples)
+  createCluster(tuples).catch(errorHandler)
 }))
 
 $('button.connect-cluster').click(showModal('Connect Cluster', (tuple) => {
-  connectCluster(tuple)
+  connectCluster(tuple).catch(errorHandler)
 }))
 
 $('button.add-node').click(showModal('Add Node', (tuple) => {
-  addNode(tuple)
+  addNode(tuple).catch(errorHandler)
 }))
 
-emitter.on('addLink', addLink)
+emitter.on('addLink', (from, to) => {
+  addLink(from, to).catch(errorHandler)
+})
 
 async function createCluster (tuples) {
   await redis.createCluster(tuples)
@@ -46,6 +48,10 @@ async function addLink (from, to) {
   await redis.replicate(from, node.id)
   nodes = await redis.getClusterNodes(nodes[0].tuple)
   draw(nodes)
+}
+
+function errorHandler (err) {
+  window.alert(err.stdout + '\n' + err.stderr)
 }
 
 function showModal (action, callback) {
