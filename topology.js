@@ -35,7 +35,7 @@ const force = d3.forceSimulation()
   .force('link', d3.forceLink().id((d) => d.id).distance(150))
   .force('charge', d3.forceManyBody().strength(-500))
   .force('x', d3.forceX(width / 2))
-  .force('y', d3.forceY(height / 2))
+  .force('y', d3.forceY().y((d) => d.reflexive ? height / 3 : height))
   .on('tick', tick)
 
 // init D3 drag support
@@ -251,7 +251,8 @@ function restart () {
   // set the graph in motion
   force
     .nodes(nodes)
-    .force('link').links(links)
+    .force('link')
+    .links(links)
 
   force.alphaTarget(0.3).restart()
 }
