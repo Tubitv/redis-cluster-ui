@@ -47,10 +47,9 @@ async function getClusterNodes (tuple) {
     if (tuple[0] === ':') {
       tuple = '127.0.0.1' + tuple
     }
-    const [host, port] = tuple.split(':')
     flags = flags.split(',')
     slots = slots.map(slot => slot.split('-'))
-    return { id, tuple, host, port, flags, master, pingSent, pongRecv, configEpoch, linkState, slots }
+    return { id, tuple, flags, master, pingSent, pongRecv, configEpoch, linkState, slots }
   })
 }
 

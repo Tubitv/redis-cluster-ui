@@ -381,14 +381,20 @@ exports.draw = function (_nodes) {
   links = []
   nodes = _nodes.map(node => {
     if (node.flags.includes('slave')) {
+      const from = node.tuple
+      const to = _nodes.find(n => n.id === node.master).tuple
+      const isRight = from < to
+      const source = isRight ? from : to
+      const target = isRight ? to : from
+
       links.push({
-        source: node.tuple,
-        target: _nodes.find(n => n.id === node.master).tuple,
-        left: false,
-        right: true
+        source,
+        target,
+        left: !isRight,
+        right: isRight
       })
     }
-    return { id: node.tuple, reflexive: node.flags === 'master' }
+    return { id: node.tuple, reflexive: node.flags.includes('master') }
   })
   debug('links', links)
   debug('nodes', nodes)
