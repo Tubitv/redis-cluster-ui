@@ -381,36 +381,61 @@ d3.select(window)
   .on('keyup', keyup)
 restart()
 
-function getNode (_node) {
-  return { id: _node.tuple, reflexive: _node.flags.includes('master') }
+function findNode (id) {
+  return nodes.find(node => node.id === id)
 }
 
-exports.draw = function (_nodes) {
+function getLink (items, item) {
+  const from = findNode(item.id)
+  const to = findNode(items.find(n => n.hash === item.master).id)
+  const isRight = from.id < to.id
+  const source = isRight ? from : to
+  const target = isRight ? to : from
+  return { source, target, left: !isRight, right: isRight }
+}
+
+exports.draw = function (items) {
+  // unify the meaning of id in renderer.js and topology.js
+  items = items.map(item => {
+    return { id: item.tuple, hash: item.id, master: item.master, reflexive: item.flags.includes('master') }
+  })
+
   // add new nodes
-  _nodes.forEach(_node => {
-    const newNode = getNode(_node)
-    const oldNode = nodes.find(node => node.id === newNode.id)
+  items.forEach(item => {
+    const oldNode = findNode(item.id)
     if (!oldNode) {
-      nodes.push(newNode)
+      nodes.push(item)
     } else {
       // update other fields for existing nodes
-      oldNode.reflexive = newNode.reflexive
+      oldNode.reflexive = item.reflexive
     }
   })
 
   // remove old nodes
-  nodes = nodes.filter(node => _nodes.find(_node => _node.tuple === node.id))
+  nodes = nodes.filter(node => items.find(item => item.id === node.id))
 
-  links = _nodes
-    .filter(_node => _node.flags.includes('slave'))
-    .map(_node => {
-      const from = _node.tuple
-      const to = _nodes.find(n => n.id === _node.master).tuple
-      const isRight = from < to
-      const source = isRight ? from : to
-      const target = isRight ? to : from
-      return { source, target, left: !isRight, right: isRight }
+  // add new links
+  items
+    .filter(item => !item.reflexive)
+    .forEach(item => {
+      const newLink = getLink(items, item)
+      const oldLink = links.find(link => link.source.id === newLink.source.id && link.target.id === newLink.target.id)
+      if (!oldLink) {
+        links.push(newLink)
+      }
     })
+
+  // remove old links
+  links = links.filter(link => {
+    return items.find(item => {
+      if (!item.reflexive) {
+        const newLink = getLink(items, item)
+        return link.source.id === newLink.source.id && link.target.id === newLink.target.id
+      }
+
+      return false
+    })
+  })
 
   debug('links', links)
   debug('nodes', nodes)
