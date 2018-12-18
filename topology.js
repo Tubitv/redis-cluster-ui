@@ -29,7 +29,6 @@ const svg = d3.select('.topology')
 // ]
 let nodes = []
 let links = []
-// let lastNodeId = 2
 
 // init D3 force layout
 const force = d3.forceSimulation()
@@ -257,20 +256,6 @@ function restart () {
   force.alphaTarget(0.3).restart()
 }
 
-function mousedown () {
-  // // because :active only works in WebKit?
-  // svg.classed('active', true)
-  //
-  // if (d3.event.ctrlKey || mousedownNode || mousedownLink) return
-  //
-  // // insert new node at point
-  // const point = d3.mouse(this)
-  // const node = { id: ++lastNodeId, reflexive: false, x: point[0], y: point[1] }
-  // nodes.push(node)
-  //
-  // restart()
-}
-
 function mousemove () {
   if (!mousedownNode) return
 
@@ -373,8 +358,7 @@ function keyup () {
 }
 
 // app starts here
-svg.on('mousedown', mousedown)
-  .on('mousemove', mousemove)
+svg.on('mousemove', mousemove)
   .on('mouseup', mouseup)
 d3.select(window)
   .on('keydown', keydown)
