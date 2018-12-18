@@ -242,7 +242,9 @@ function restart () {
   // show node IDs
   g.append('svg:text')
     .attr('x', 0)
-    .attr('y', -20)
+    .attr('y', (d) => {
+      return d.reflexive ? -20 : 30
+    })
     .attr('class', 'id')
     .text((d) => d.id)
 

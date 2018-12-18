@@ -62,8 +62,9 @@ async function getClusterNodes (tuple) {
         tuple = '127.0.0.1' + tuple
       }
       flags = flags.split(',')
+      const isMaster = flags.includes('master')
       slots = slots.map(slot => slot.split('-'))
-      return { id, tuple, flags, master, pingSent, pongRecv, configEpoch, linkState, slots }
+      return { id, tuple, flags, isMaster, master, pingSent, pongRecv, configEpoch, linkState, slots }
     })
     .sort((a, b) => a.tuple > b.tuple)
 }
