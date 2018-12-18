@@ -161,7 +161,7 @@ function restart () {
 
   // update existing nodes (reflexive & selected visual states)
   circle.selectAll('circle')
-    .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
+    .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.reflexive)).brighter().toString() : colors(d.reflexive))
     .classed('reflexive', (d) => d.reflexive)
 
   // remove old nodes
@@ -173,8 +173,8 @@ function restart () {
   g.append('svg:circle')
     .attr('class', 'node')
     .attr('r', 12)
-    .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
-    .style('stroke', (d) => d3.rgb(colors(d.id)).darker().toString())
+    .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.reflexive)).brighter().toString() : colors(d.reflexive))
+    .style('stroke', (d) => d3.rgb(colors(d.reflexive)).darker().toString())
     .classed('reflexive', (d) => d.reflexive)
     .on('mouseover', function (d) {
       if (!mousedownNode || d === mousedownNode) return
