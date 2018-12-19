@@ -38,18 +38,18 @@ class RedisCli {
     })
   }
 
-  async execAsync (command) {
+  async execAsync (command, interactiveHandler) {
     const isRemoteExec = !!this.conn
     debug('execute', isRemoteExec ? 'remote' : 'local', 'command', command)
 
-    const execAsync = isRemoteExec ? this.sshExecAsync.bind(this) : localExecAsync
-    const result = await execAsync(command)
+    const execAsync = isRemoteExec ? this.sshExecAsync.bind(this) : (interactiveHandler ? this.localSpawnAsync.bind(this) : localExecAsync)
+    const result = await execAsync(command, interactiveHandler)
     debug('output', 'stdout', result.stdout, 'stderr', result.stderr)
 
     return result
   }
 
-  async sshExecAsync (command) {
+  async sshExecAsync (command, interactiveHandler = function () {}) {
     return new Promise((resolve, reject) => {
       this.conn.exec(`PATH=$PATH:/usr/local/bin bash -c '${command}'`, function (err, stream) {
         if (err) return reject(err)
@@ -60,6 +60,7 @@ class RedisCli {
           resolve({ code, stdout, stderr })
         }).on('data', function (data) {
           stdout += data
+          interactiveHandler(data, { stdin: stream, stdout: stream, stderr: stream.stderr })
         }).stderr.on('data', function (data) {
           stderr += data
         })
@@ -67,33 +68,40 @@ class RedisCli {
     })
   }
 
-  async createCluster (tuples) {
+  async localSpawnAsync (command, interactiveHandler = function () {}) {
     return new Promise((resolve, reject) => {
-      const args = ['--cluster', 'create'].concat(tuples)
-      const create = spawn('redis-cli', args)
+      const [cmd, ...args] = command.split(/\s+/)
+      const child = spawn(cmd, args)
       let stdout = ''
       let stderr = ''
 
-      create.stdout.on('data', (data) => {
+      child.stdout.on('data', (data) => {
         stdout += data
-        if (data.includes('type \'yes\' to accept')) {
-          const confirmed = window.confirm(data)
-          create.stdin.write(confirmed ? 'yes' : 'no')
-        }
+        interactiveHandler(data, { stdin: child.stdin, stdout: child.stdout, stderr: child.stderr })
       })
 
-      create.stderr.on('data', (data) => {
+      child.stderr.on('data', (data) => {
         stderr += data
       })
 
-      create.on('close', (code) => {
-        debug('createCluster', code, stdout, stderr)
+      child.on('close', (code) => {
         if (code !== 0) {
-          return reject(new CommandError('redis-cli ' + args.join(' '), code, stdout, stderr))
+          return reject(new CommandError(command, code, stdout, stderr))
         }
-        resolve()
+        resolve({ code, stdout, stderr })
       })
     })
+  }
+
+  async createCluster (tuples) {
+    const handler = (data, { stdin }) => {
+      if (data.includes('type \'yes\' to accept')) {
+        const confirmed = window.confirm(data)
+        stdin.write(confirmed ? 'yes' : 'no')
+      }
+    }
+    const { stdout } = await this.execAsync('redis-cli --cluster create ' + tuples.join(' '), handler)
+    return stdout
   }
 
   async getClusterNodes (tuple) {
