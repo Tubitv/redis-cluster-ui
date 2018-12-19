@@ -1,7 +1,7 @@
 const os = require('os')
 const { remote: { dialog } } = require('electron')
 const redis = require('./redis')
-const { draw, emitter } = require('./topology')
+const { draw, emitter, createDiagram, updateDiagram } = require('./topology')
 
 let nodes = []
 
@@ -39,9 +39,7 @@ $('button.connect-server').click(() => {
                     </div>
                 </div>
             </div>
-  
             <div class="ui error message"></div>
-  
         </form>
     </div>
   `)
@@ -194,40 +192,48 @@ async function rebalance () {
 
 setInterval(async () => {
   if (nodes.length) {
+    // write node info
+    await redis.writeInfoByNode(nodes[0].tuple)
+
+    // get node info
     const newNodes = await redis.getClusterNodes(nodes[0].tuple)
+
+    // render
     render(newNodes)
     nodes = newNodes
   }
 }, 1000)
 
+// function formatNodeInfoKey (str) {
+//   return str.replace(/_/g, ' ').toUpperCase()
+// }
+
+function convertContentIntoObject (info) {
+  info = info.split('\n')
+
+  let result = {}
+  for (let line of info) {
+    line = line.trim()
+    if (line.length === 0) continue
+    if (line.indexOf('# ') !== -1) continue
+
+    const [key, value] = line.split(':')
+    result[key] = value
+  }
+
+  return result
+}
+
+let timeout
+
 function render (nodes) {
   draw(nodes, {
     onClick: function (node) {
+      if (timeout) clearTimeout(timeout)
+      timeout = null
+
       const $content = $(`<div class="description" />`)
-      $content.html('Loading...')
-
-      let interval = setInterval(async () => {
-        const info = await redis.getClusterNodeInfo(node.tuple)
-        const $topNode = $(`<div />`)
-
-        for (const title in info) {
-          const $title = $(`<h4>${title}</h4>`)
-          $topNode.append($title)
-          for (const key in info[title]) {
-            const val = info[title][key]
-
-            const $childNode = $('<p />')
-            $childNode.append($(`<span>${key}: </span>`))
-            $childNode.append($(`<span>${val}</span>`))
-
-            $topNode.append($childNode)
-          }
-        }
-
-        const scrollTop = $content.scrollTop()
-        $content.html($topNode)
-        $content.scrollTop(scrollTop)
-      }, 1000)
+      let interval
 
       const $modal = createModal({
         action: '',
@@ -246,6 +252,63 @@ function render (nodes) {
           }
         })
         .modal('show')
+
+      const usedSystemCPUContainer = $('<div />')
+      $content.append(usedSystemCPUContainer)
+
+      const usedUserCPUContainer = $('<div />')
+      $content.append(usedUserCPUContainer)
+
+      const usedMemoryContainer = $('<div />')
+      $content.append(usedMemoryContainer)
+
+      timeout = setTimeout(() => {
+        const width = $content.width()
+
+        const usedSystemCPUOption = {
+          container: usedSystemCPUContainer.get(0),
+          data: [],
+          height: 500,
+          title: 'Used System CPU',
+          width: width
+        }
+        const usedSystemCPUDiagram = createDiagram(usedSystemCPUOption)
+
+        const usedUserCPUOption = {
+          container: usedUserCPUContainer.get(0),
+          data: [],
+          height: 500,
+          title: 'Used User CPU',
+          width: width
+        }
+        const usedUserCPUDiagram = createDiagram(usedUserCPUOption)
+
+        const usedMemoryOption = {
+          container: usedMemoryContainer.get(0),
+          data: [],
+          height: 500,
+          title: 'Memory',
+          width: width
+        }
+        const usedMemoryDiagram = createDiagram(usedMemoryOption)
+
+        interval = setInterval(async () => {
+          const allInfo = await redis.readAllInfoByNode(node.tuple)
+          const allResults = allInfo.map((v) => ({ date: new Date(parseInt(v.date, 10)), value: convertContentIntoObject(v.content) }))
+
+          const usedSystemCPUData = allResults.map((v) => Object.assign({}, v, { value: v.value['used_cpu_sys'] }))
+          updateDiagram(Object.assign({}, usedSystemCPUOption, usedSystemCPUDiagram, { data: usedSystemCPUData }))
+
+          const usedUserCPUData = allResults.map((v) => Object.assign({}, v, { value: v.value['used_cpu_user'] }))
+          updateDiagram(Object.assign({}, usedUserCPUOption, usedUserCPUDiagram, { data: usedUserCPUData }))
+
+          const usedMemoryData = allResults.map((v) => Object.assign({}, v, { value: v.value['used_memory'] / 1024 }))
+          updateDiagram(Object.assign({}, usedMemoryOption, usedMemoryDiagram, { data: usedMemoryData }))
+
+          const scrollTop = $content.scrollTop()
+          $content.scrollTop(scrollTop)
+        }, 1000)
+      }, 500)
     }
   })
 }
@@ -272,7 +335,7 @@ function createModal (opt) {
     <button class="ui positive right button" type="button">OK</button>
   `)
 
-  $modal.find('.title').append(title)
+  $modal.find('.header').append(title)
   $modal.find('.content').append(body)
 
   return $modal

@@ -451,4 +451,55 @@ exports.draw = function (items, opt = {}) {
 
   restart()
 }
+
+exports.createDiagram = (opt) => {
+  const { container, data, height, title, width } = opt
+
+  const offset = 50
+
+  const scaleX = d3.scaleTime().range([0, width - 2 * offset])
+  const scaleY = d3.scaleLinear().range([height - 2 * offset, 0])
+
+  const axisX = d3.axisBottom(scaleX).ticks(5)
+  const axisY = d3.axisLeft(scaleY).ticks(5)
+
+  const lineValue = d3.line()
+    .x((d) => scaleX(d.date))
+    .y((d) => scaleY(d.value))
+
+  scaleX.domain(d3.extent(data, (d) => d.date))
+  scaleY.domain([0, d3.max(data, (d) => d.value) * 2])
+
+  const svg = d3.select(container)
+    .append('svg').attr('class', 'diagram').attr('width', width).attr('height', height)
+    .append('g').attr('transform', `translate(${offset}, ${offset})`)
+
+  if (title) {
+    svg.append('text')
+      .attr('x', (width / 2))
+      .attr('y', 0)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '16px')
+      .text(title)
+  }
+
+  svg.append('path').attr('class', 'line').attr('d', lineValue(data))
+  svg.append('g').attr('class', 'axis x').attr('transform', `translate(0, ${height - 2 * offset})`).call(axisX)
+  svg.append('g').attr('class', 'axis y').call(axisY)
+
+  return { axisX, axisY, lineValue, scaleX, scaleY }
+}
+
+exports.updateDiagram = (opt) => {
+  const { container, data, scaleX, scaleY, axisX, axisY, lineValue } = opt
+
+  scaleX.domain(d3.extent(data, (d) => d.date))
+  scaleY.domain([0, d3.max(data, (d) => d.value) * 2])
+
+  const svg = d3.select(container).transition()
+  svg.select('.line').duration(750).attr('d', lineValue(data))
+  svg.select('.axis.x').duration(750).call(axisX)
+  svg.select('.axis.y').duration(750).call(axisY)
+}
+
 exports.emitter = emitter

@@ -1,8 +1,11 @@
-const fs = require('fs')
-const util = require('util')
 const { exec, spawn } = require('child_process')
-const { Client } = require('ssh2')
 const debug = require('debug')('redis-cluster-ui:redis')
+const fs = require('fs')
+const path = require('path')
+const { Client } = require('ssh2')
+const util = require('util')
+
+const shared = require('./shared')
 
 const localExecAsync = util.promisify(exec)
 
@@ -16,6 +19,10 @@ class CommandError extends Error {
 }
 
 class RedisCli {
+  isCommandFailed (stdout) {
+    return stdout.indexOf('ERR') === 0
+  }
+
   async setupSSHTunnel (host, port, user, password, key) {
     debug('ssh connect params', host, user, key, port)
     const self = this
@@ -154,8 +161,17 @@ class RedisCli {
     return stdout
   }
 
-  async rebalance (tuple) {
-    const command = `redis-cli --cluster rebalance ${tuple} --cluster-use-empty-masters`
+  /**
+   * write info
+   */
+
+  getRunId (info) {
+    return (info.split('\n').filter((s) => s.indexOf('run_id') === 0)[0]).split(':')[1]
+  }
+
+  async readNodeInfoByCli (address) {
+    const [host, port] = address.split(':')
+    const command = `redis-cli -h ${host} -p ${port} info`
     const { stdout, stderr } = await this.execAsync(command)
 
     if (this.isCommandFailed(stdout)) {
@@ -165,53 +181,37 @@ class RedisCli {
     return stdout
   }
 
-  async getClusterNodeInfo (tuple) {
-    const [host, port] = tuple.split(':')
-    const command = `redis-cli -h ${host} -p ${port} info`
-    const { stdout, stderr } = await this.execAsync(command)
+  async writeInfoByNode (address) {
+    const date = new Date()
 
-    if (this.isCommandFailed(stdout)) {
-      throw new CommandError(command, 0, stdout, stderr)
-    }
+    const info = await this.readNodeInfoByCli(address)
+    const runId = this.getRunId(info)
 
-    if (typeof stdout !== 'string') {
-      throw new Error(`stdout isn't string.`)
-    }
+    const fileName = path.join(shared.tmpDir.name, `${runId}_${date.valueOf()}`)
 
-    let currentGroup = null
-    let infoGroup = Object.create(null)
-    let infoStr = stdout.split('\n')
-
-    for (let val of infoStr) {
-      val = val.trim()
-      if (val.length === 0) continue
-
-      if (val.indexOf('# ') === 0) {
-        val = this.formatNodeInfoKey(val.slice(2))
-        if (val === currentGroup) continue
-        if (val in infoGroup) continue
-        currentGroup = val
-        infoGroup[val] = {}
-        continue
-      }
-
-      if (typeof infoGroup[currentGroup] !== 'object') {
-        throw new Error(`infoGroup don't have ${currentGroup}.`)
-      }
-
-      const [key, value] = val.split(':')
-      infoGroup[currentGroup][this.formatNodeInfoKey(key)] = value
-    }
-
-    return infoGroup
+    await fs.writeFileSync(fileName, info, { encoding: 'utf8' })
   }
 
-  isCommandFailed (stdout) {
-    return stdout.indexOf('ERR') === 0
-  }
+  /**
+   * read & write info
+   */
 
-  formatNodeInfoKey (str) {
-    return str.replace(/_/g, ' ').toUpperCase()
+  async readAllInfoByNode (address) {
+    const info = await this.readNodeInfoByCli(address)
+    const runId = this.getRunId(info)
+
+    let files = await fs.readdirSync(shared.tmpDir.name)
+    files = files.filter((v) => v.indexOf(runId) !== -1)
+
+    let result = []
+    for (const v of files) {
+      const [runId, date] = v.split('_')
+      const fileName = path.join(shared.tmpDir.name, v)
+      const content = await fs.readFileSync(fileName, { encoding: 'utf-8' })
+      result.push({ content, runId, date })
+    }
+
+    return result
   }
 }
 
