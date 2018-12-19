@@ -1,3 +1,5 @@
+const os = require('os')
+const { remote: { dialog } } = require('electron')
 const redis = require('./redis')
 const { draw, emitter } = require('./topology')
 
@@ -44,6 +46,18 @@ $('button.connect-server').click(() => {
     </div>
   `)
 
+  $content.find('.folder.open.icon').click(() => {
+    dialog.showOpenDialog({
+      title: 'Select SSH private key',
+      defaultPath: `${os.homedir()}/.ssh`,
+      properties: ['openFile', 'showHiddenFiles']
+    }, filePaths => {
+      if (filePaths && filePaths[0]) {
+        $content.find('input[name="key"]').val(filePaths[0])
+      }
+    })
+  })
+
   const $modal = createModal({
     body: $content,
     title: 'Connect to Remote Server'
@@ -53,7 +67,7 @@ $('button.connect-server').click(() => {
     .modal('show')
     .modal({
       onApprove: function () {
-        const [host, user, key, port] = $content.map(function () { return this.value }).get()
+        const [host, user, key, port] = $content.find('input').map(function () { return this.value }).get()
         connectServer(host, port, user, null, key).catch(errorHandler)
       }
     })

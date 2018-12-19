@@ -27,7 +27,7 @@ class RedisCli {
         resolve(conn)
       }).on('error', function (err) {
         debug('ssh connection failed', err)
-        reject(err)
+        reject(new CommandError('ssh connect failed', 1, '', err))
       }).connect({
         host,
         port,
@@ -128,6 +128,7 @@ class RedisCli {
         return { id, tuple, flags, isMaster, master, pingSent, pongRecv, configEpoch, linkState, slots }
       })
       .sort((a, b) => a.tuple > b.tuple)
+      .filter(node => !node.flags.includes('fail'))
   }
 
   async addNode (newTuple, oldTuple) {
