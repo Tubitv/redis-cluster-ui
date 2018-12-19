@@ -39,10 +39,13 @@ class RedisCli {
   }
 
   async execAsync (command) {
-    debug('execute', command)
-    const execAsync = this.conn ? this.sshExecAsync.bind(this) : localExecAsync
+    const isRemoteExec = !!this.conn
+    debug('execute', isRemoteExec ? 'remote' : 'local', 'command', command)
+
+    const execAsync = isRemoteExec ? this.sshExecAsync.bind(this) : localExecAsync
     const result = await execAsync(command)
     debug('output', 'stdout', result.stdout, 'stderr', result.stderr)
+
     return result
   }
 
@@ -117,7 +120,6 @@ class RedisCli {
         return { id, tuple, flags, isMaster, master, pingSent, pongRecv, configEpoch, linkState, slots }
       })
       .sort((a, b) => a.tuple > b.tuple)
-      .filter(node => !node.flags.includes('fail'))
   }
 
   async addNode (newTuple, oldTuple) {
@@ -154,8 +156,53 @@ class RedisCli {
     return stdout
   }
 
+  async getClusterNodeInfo (tuple) {
+    const [host, port] = tuple.split(':')
+    const command = `redis-cli -h ${host} -p ${port} info`
+    const { stdout, stderr } = await this.execAsync(command)
+
+    if (this.isCommandFailed(stdout)) {
+      throw new CommandError(command, 0, stdout, stderr)
+    }
+
+    if (typeof stdout !== 'string') {
+      throw new Error(`stdout isn't string.`)
+    }
+
+    let currentGroup = null
+    let infoGroup = Object.create(null)
+    let infoStr = stdout.split('\n')
+
+    for (let val of infoStr) {
+      val = val.trim()
+      if (val.length === 0) continue
+
+      if (val.indexOf('# ') === 0) {
+        val = this.formatNodeInfoKey(val.slice(2))
+        if (val === currentGroup) continue
+        if (val in infoGroup) continue
+        currentGroup = val
+        infoGroup[val] = {}
+        continue
+      }
+
+      if (typeof infoGroup[currentGroup] !== 'object') {
+        throw new Error(`infoGroup don't have ${currentGroup}.`)
+      }
+
+      const [key, value] = val.split(':')
+      infoGroup[currentGroup][this.formatNodeInfoKey(key)] = value
+    }
+
+    return infoGroup
+  }
+
   isCommandFailed (stdout) {
     return stdout.indexOf('ERR') === 0
+  }
+
+  formatNodeInfoKey (str) {
+    return str.replace(/_/g, ' ').toUpperCase()
   }
 }
 
