@@ -1,4 +1,3 @@
-const { isEqual } = require('lodash')
 const redis = require('./redis')
 const { draw, emitter } = require('./topology')
 
@@ -59,10 +58,8 @@ async function rebalance () {
 setInterval(async () => {
   if (nodes.length) {
     const newNodes = await redis.getClusterNodes(nodes[0].tuple)
-    if (!isEqual(newNodes, nodes)) {
-      draw(newNodes)
-      nodes = newNodes
-    }
+    draw(newNodes)
+    nodes = newNodes
   }
 }, 1000)
 

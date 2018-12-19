@@ -247,13 +247,18 @@ function restart () {
     })
     .attr('class', 'id')
     .text((d) => d.tuple)
+
+  // show node slots
   g.append('svg:text')
     .attr('x', 0)
     .attr('y', (d) => {
       return d.isMaster ? -20 : 30
     })
-    .attr('class', 'id')
+    .attr('class', 'slots')
     .text((d) => d.slots)
+
+  // update node slots
+  circle.selectAll('text.slots').text((d) => d.slots)
 
   circle = g.merge(circle)
 
