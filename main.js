@@ -1,6 +1,8 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow } = require('electron')
 
+const shared = require('./shared')
+
 // try {
 //   require('electron-reloader')(module)
 // } catch (err) {}
@@ -21,6 +23,8 @@ function createWindow () {
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
+    shared.tmpDir.removeCallback()
+
     // Dereference the window object, usually you would store windows
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.

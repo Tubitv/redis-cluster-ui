@@ -8,7 +8,8 @@
     "electron": "^3.0.12",
     "ioredis": "^4.3.0",
     "lodash": "^4.17.11",
-    "ssh2": "^0.6.1"
+    "ssh2": "^0.6.1",
+    "tmp": "0.0.33"
   },
   "devDependencies": {
     "electron-reloader": "^0.2.0",

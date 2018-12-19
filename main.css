@@ -35,6 +35,20 @@ path.link.hidden {
     stroke-width: 0;
 }
 
+.diagram path {
+    stroke: steelblue;
+    stroke-width: 2;
+    fill: none;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
 circle.node {
     stroke-width: 1.5px;
     cursor: pointer;
