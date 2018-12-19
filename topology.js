@@ -160,6 +160,7 @@ function restart () {
 
   // update existing nodes (reflexive & selected visual states)
   circle.selectAll('circle')
+    .attr('data-id', (d) => d.id)
     .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.isMaster)).brighter().toString() : colors(d.isMaster))
     .classed('reflexive', (d) => d.isMaster)
 
@@ -373,11 +374,15 @@ function keyup () {
 }
 
 // app starts here
-svg.on('mousemove', mousemove)
+svg
+  .on('mousemove', mousemove)
   .on('mouseup', mouseup)
-d3.select(window)
+
+d3
+  .select(window)
   .on('keydown', keydown)
   .on('keyup', keyup)
+
 restart()
 
 function findNode (id) {
@@ -393,7 +398,7 @@ function getLink (items, item) {
   return { source, target, left: !isRight, right: isRight }
 }
 
-exports.draw = function (items) {
+exports.draw = function (items, opt = {}) {
   // add new nodes
   items.forEach(item => {
     const oldNode = findNode(item.id)
@@ -408,7 +413,9 @@ exports.draw = function (items) {
   })
 
   // remove old nodes
-  nodes = nodes.filter(node => items.find(item => item.id === node.id))
+  nodes = nodes.filter(node => {
+    return items.find(item => item.id === node.id)
+  })
 
   // add new links
   items
@@ -432,6 +439,12 @@ exports.draw = function (items) {
       return false
     })
   })
+
+  // add "click" event
+  const { onClick } = opt
+  circle
+    .selectAll('circle')
+    .on('click', (d) => onClick(d))
 
   debug('links', links)
   debug('nodes', nodes)
