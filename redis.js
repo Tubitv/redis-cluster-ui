@@ -110,4 +110,56 @@ function isCommandFailed (stdout) {
   return stdout.indexOf('ERR') === 0
 }
 
-module.exports = { createCluster, getClusterNodes, addNode, replicate, rebalance }
+function formatNodeInfoKey (str) {
+  return str.replace(/_/g, ' ').toUpperCase()
+}
+
+async function getClusterNodeInfo (tuple) {
+  const [host, port] = tuple.split(':')
+  const command = `redis-cli -h ${host} -p ${port} info`
+  const { stdout, stderr } = await execAsync(command)
+
+  if (isCommandFailed(stdout)) {
+    throw new CommandError(command, 0, stdout, stderr)
+  }
+
+  if (typeof stdout !== 'string') {
+    throw new Error(`stdout isn't string.`)
+  }
+
+  let currentGroup = null
+  let infoGroup = Object.create(null)
+  let infoStr = stdout.split('\n')
+
+  for (let val of infoStr) {
+    val = val.trim()
+    if (val.length === 0) continue
+
+    if (val.indexOf('# ') === 0) {
+      val = formatNodeInfoKey(val.slice(2))
+      if (val === currentGroup) continue
+      if (val in infoGroup) continue
+      currentGroup = val
+      infoGroup[val] = {}
+      continue
+    }
+
+    if (typeof infoGroup[currentGroup] !== 'object') {
+      throw new Error(`infoGroup don't have ${currentGroup}.`)
+    }
+
+    const [key, value] = val.split(':')
+    infoGroup[currentGroup][formatNodeInfoKey(key)] = value
+  }
+
+  return infoGroup
+}
+
+module.exports = {
+  addNode,
+  createCluster,
+  getClusterNodeInfo,
+  getClusterNodes,
+  rebalance,
+  replicate
+}
