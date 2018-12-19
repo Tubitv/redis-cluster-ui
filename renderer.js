@@ -1,5 +1,6 @@
 const os = require('os')
 const { remote: { dialog } } = require('electron')
+// const debug = require('debug')('redis-cluster-ui:renderer')
 const redis = require('./redis')
 const { draw, emitter } = require('./topology')
 
@@ -9,7 +10,14 @@ connectCluster('127.0.0.1:7001')
 window.localStorage.debug = 'redis-cluster-ui:*'
 
 $('button.connect-server').click(() => {
-  $('.ui.modal.connect').modal('show')
+  $('.ui.modal.connect')
+    .modal('show')
+    .modal({
+      onApprove: function () {
+        const [host, user, key, port] = $('.ui.modal.connect input').map(function () { return this.value }).get()
+        connectServer(host, user, key, port).catch(errorHandler)
+      }
+    })
 })
 
 $('.folder.open.icon').click(() => {
@@ -18,7 +26,9 @@ $('.folder.open.icon').click(() => {
     defaultPath: `${os.homedir()}/.ssh`,
     properties: ['openFile', 'showHiddenFiles']
   }, filePaths => {
-    console.log(filePaths)
+    if (filePaths && filePaths[0]) {
+      $('.ui.modal.connect input[name="key"]').val(filePaths[0])
+    }
   })
 })
 
@@ -44,6 +54,10 @@ $('.button.rebalance').click(() => {
 emitter.on('addLink', (from, to) => {
   addLink(from, to).catch(errorHandler)
 })
+
+async function connectServer (host, user, key, port) {
+  return redis.setupSSHTunel(host, user, key, port)
+}
 
 async function createCluster (tuples) {
   await redis.createCluster(tuples)
