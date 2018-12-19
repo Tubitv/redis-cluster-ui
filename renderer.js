@@ -6,7 +6,6 @@ const { draw, emitter } = require('./topology')
 
 let nodes = []
 
-connectCluster('127.0.0.1:7001')
 window.localStorage.debug = 'redis-cluster-ui:*'
 
 $('button.connect-server').click(() => {
@@ -15,7 +14,7 @@ $('button.connect-server').click(() => {
     .modal({
       onApprove: function () {
         const [host, user, key, port] = $('.ui.modal.connect input').map(function () { return this.value }).get()
-        connectServer(host, user, key, port).catch(errorHandler)
+        connectServer(host, port, user, null, key).catch(errorHandler)
       }
     })
 })
@@ -55,8 +54,8 @@ emitter.on('addLink', (from, to) => {
   addLink(from, to).catch(errorHandler)
 })
 
-async function connectServer (host, user, key, port) {
-  return redis.setupSSHTunel(host, user, key, port)
+async function connectServer (host, port, user, password, key) {
+  return redis.setupSSHTunnel(host, port, user, password, key)
 }
 
 async function createCluster (tuples) {
