@@ -1,8 +1,10 @@
+const fs = require('fs')
 const util = require('util')
 const { exec, spawn } = require('child_process')
+const { Client } = require('ssh2')
 const debug = require('debug')('redis-cluster-ui:redis')
 
-const execAsync = util.promisify(exec)
+const localExecAsync = util.promisify(exec)
 
 class CommandError extends Error {
   constructor (command, code, stdout, stderr) {
@@ -13,153 +15,195 @@ class CommandError extends Error {
   }
 }
 
-async function createCluster (tuples) {
-  return new Promise((resolve, reject) => {
-    const args = ['--cluster', 'create'].concat(tuples)
-    const create = spawn('redis-cli', args)
-    let stdout = ''
-    let stderr = ''
-
-    create.stdout.on('data', (data) => {
-      stdout += data
-      if (data.includes('type \'yes\' to accept')) {
-        const confirmed = window.confirm(data)
-        create.stdin.write(confirmed ? 'yes' : 'no')
-      }
+class RedisCli {
+  async setupSSHTunnel (host, port, user, password, key) {
+    debug('ssh connect params', host, user, key, port)
+    const self = this
+    return new Promise((resolve, reject) => {
+      const conn = new Client()
+      conn.on('ready', function () {
+        debug('ssh connection ready')
+        self.conn = conn
+        resolve(conn)
+      }).on('error', function (err) {
+        debug('ssh connection failed', err)
+        reject(err)
+      }).connect({
+        host,
+        port,
+        username: user,
+        password,
+        privateKey: key ? fs.readFileSync(key) : undefined
+      })
     })
+  }
 
-    create.stderr.on('data', (data) => {
-      stderr += data
+  async execAsync (command) {
+    const isRemoteExec = !!this.conn
+    debug('execute', isRemoteExec ? 'remote' : 'local', 'command', command)
+
+    const execAsync = isRemoteExec ? this.sshExecAsync.bind(this) : localExecAsync
+    const result = await execAsync(command)
+    debug('output', 'stdout', result.stdout, 'stderr', result.stderr)
+
+    return result
+  }
+
+  async sshExecAsync (command) {
+    return new Promise((resolve, reject) => {
+      this.conn.exec(`PATH=$PATH:/usr/local/bin bash -c '${command}'`, function (err, stream) {
+        if (err) return reject(err)
+
+        let stdout = ''
+        let stderr = ''
+        stream.on('close', function (code, signal) {
+          resolve({ code, stdout, stderr })
+        }).on('data', function (data) {
+          stdout += data
+        }).stderr.on('data', function (data) {
+          stderr += data
+        })
+      })
     })
+  }
 
-    create.on('close', (code) => {
-      debug('createCluster', code, stdout, stderr)
-      if (code !== 0) {
-        return reject(new CommandError('redis-cli ' + args.join(' '), code, stdout, stderr))
-      }
-      resolve()
+  async createCluster (tuples) {
+    return new Promise((resolve, reject) => {
+      const args = ['--cluster', 'create'].concat(tuples)
+      const create = spawn('redis-cli', args)
+      let stdout = ''
+      let stderr = ''
+
+      create.stdout.on('data', (data) => {
+        stdout += data
+        if (data.includes('type \'yes\' to accept')) {
+          const confirmed = window.confirm(data)
+          create.stdin.write(confirmed ? 'yes' : 'no')
+        }
+      })
+
+      create.stderr.on('data', (data) => {
+        stderr += data
+      })
+
+      create.on('close', (code) => {
+        debug('createCluster', code, stdout, stderr)
+        if (code !== 0) {
+          return reject(new CommandError('redis-cli ' + args.join(' '), code, stdout, stderr))
+        }
+        resolve()
+      })
     })
-  })
-}
-
-async function getClusterNodes (tuple) {
-  const [host, port] = tuple.split(':')
-  const command = `redis-cli -h ${host} -p ${port} CLUSTER NODES`
-  const { stdout, stderr } = await execAsync(command)
-  debug('getClusterNodes', stdout, stderr)
-
-  if (stderr) {
-    throw new CommandError(command, 0, stdout, stderr)
   }
 
-  return stdout
-    .trim()
-    .split('\n')
-    .map(line => {
-      let [id, tuple, flags, master, pingSent, pongRecv, configEpoch, linkState, ...slots] = line.split(' ')
-      tuple = tuple.split('@')[0]
-      if (tuple[0] === ':') {
-        tuple = '127.0.0.1' + tuple
-      }
-      flags = flags.split(',')
-      const isMaster = flags.includes('master')
-      slots = slots.map(slot => slot.split('-'))
-      return { id, tuple, flags, isMaster, master, pingSent, pongRecv, configEpoch, linkState, slots }
-    })
-    .sort((a, b) => a.tuple > b.tuple)
-}
+  async getClusterNodes (tuple) {
+    const [host, port] = tuple.split(':')
+    const command = `redis-cli -h ${host} -p ${port} CLUSTER NODES`
+    const { stdout, stderr } = await this.execAsync(command)
 
-async function addNode (newTuple, oldTuple) {
-  const command = `redis-cli --cluster add-node ${newTuple} ${oldTuple}`
-  const { stdout, stderr } = await execAsync(command)
-  debug('addNode', stdout, stderr)
-
-  if (isCommandFailed(stdout)) {
-    throw new CommandError(command, 0, stdout, stderr)
-  }
-
-  return stdout
-}
-
-async function replicate (tuple, nodeId) {
-  const [host, port] = tuple.split(':')
-  const command = `redis-cli -h ${host} -p ${port} CLUSTER REPLICATE ${nodeId}`
-  const { stdout, stderr } = await execAsync(command)
-  debug('replicate', stdout, stderr)
-
-  if (isCommandFailed(stdout)) {
-    throw new CommandError(command, 0, stdout, stderr)
-  }
-
-  return stdout
-}
-
-async function rebalance (tuple) {
-  const command = `redis-cli --cluster rebalance ${tuple} --cluster-use-empty-masters`
-  const { stdout, stderr } = await execAsync(command)
-  debug('rebalance', stdout, stderr)
-
-  if (isCommandFailed(stdout)) {
-    throw new CommandError(command, 0, stdout, stderr)
-  }
-
-  return stdout
-}
-
-function isCommandFailed (stdout) {
-  return stdout.indexOf('ERR') === 0
-}
-
-function formatNodeInfoKey (str) {
-  return str.replace(/_/g, ' ').toUpperCase()
-}
-
-async function getClusterNodeInfo (tuple) {
-  const [host, port] = tuple.split(':')
-  const command = `redis-cli -h ${host} -p ${port} info`
-  const { stdout, stderr } = await execAsync(command)
-
-  if (isCommandFailed(stdout)) {
-    throw new CommandError(command, 0, stdout, stderr)
-  }
-
-  if (typeof stdout !== 'string') {
-    throw new Error(`stdout isn't string.`)
-  }
-
-  let currentGroup = null
-  let infoGroup = Object.create(null)
-  let infoStr = stdout.split('\n')
-
-  for (let val of infoStr) {
-    val = val.trim()
-    if (val.length === 0) continue
-
-    if (val.indexOf('# ') === 0) {
-      val = formatNodeInfoKey(val.slice(2))
-      if (val === currentGroup) continue
-      if (val in infoGroup) continue
-      currentGroup = val
-      infoGroup[val] = {}
-      continue
+    if (stderr) {
+      throw new CommandError(command, 0, stdout, stderr)
     }
 
-    if (typeof infoGroup[currentGroup] !== 'object') {
-      throw new Error(`infoGroup don't have ${currentGroup}.`)
-    }
-
-    const [key, value] = val.split(':')
-    infoGroup[currentGroup][formatNodeInfoKey(key)] = value
+    return stdout
+      .trim()
+      .split('\n')
+      .map(line => {
+        let [id, tuple, flags, master, pingSent, pongRecv, configEpoch, linkState, ...slots] = line.split(' ')
+        tuple = tuple.split('@')[0]
+        if (tuple[0] === ':') {
+          tuple = '127.0.0.1' + tuple
+        }
+        flags = flags.split(',')
+        const isMaster = flags.includes('master')
+        slots = slots.map(slot => slot.split('-'))
+        return { id, tuple, flags, isMaster, master, pingSent, pongRecv, configEpoch, linkState, slots }
+      })
+      .sort((a, b) => a.tuple > b.tuple)
   }
 
-  return infoGroup
+  async addNode (newTuple, oldTuple) {
+    const command = `redis-cli --cluster add-node ${newTuple} ${oldTuple}`
+    const { stdout, stderr } = await this.execAsync(command)
+
+    if (this.isCommandFailed(stdout)) {
+      throw new CommandError(command, 0, stdout, stderr)
+    }
+
+    return stdout
+  }
+
+  async replicate (tuple, nodeId) {
+    const [host, port] = tuple.split(':')
+    const command = `redis-cli -h ${host} -p ${port} CLUSTER REPLICATE ${nodeId}`
+    const { stdout, stderr } = await this.execAsync(command)
+
+    if (this.isCommandFailed(stdout)) {
+      throw new CommandError(command, 0, stdout, stderr)
+    }
+
+    return stdout
+  }
+
+  async rebalance (tuple) {
+    const command = `redis-cli --cluster rebalance ${tuple} --cluster-use-empty-masters`
+    const { stdout, stderr } = await this.execAsync(command)
+
+    if (this.isCommandFailed(stdout)) {
+      throw new CommandError(command, 0, stdout, stderr)
+    }
+
+    return stdout
+  }
+
+  async getClusterNodeInfo (tuple) {
+    const [host, port] = tuple.split(':')
+    const command = `redis-cli -h ${host} -p ${port} info`
+    const { stdout, stderr } = await this.execAsync(command)
+
+    if (this.isCommandFailed(stdout)) {
+      throw new CommandError(command, 0, stdout, stderr)
+    }
+
+    if (typeof stdout !== 'string') {
+      throw new Error(`stdout isn't string.`)
+    }
+
+    let currentGroup = null
+    let infoGroup = Object.create(null)
+    let infoStr = stdout.split('\n')
+
+    for (let val of infoStr) {
+      val = val.trim()
+      if (val.length === 0) continue
+
+      if (val.indexOf('# ') === 0) {
+        val = this.formatNodeInfoKey(val.slice(2))
+        if (val === currentGroup) continue
+        if (val in infoGroup) continue
+        currentGroup = val
+        infoGroup[val] = {}
+        continue
+      }
+
+      if (typeof infoGroup[currentGroup] !== 'object') {
+        throw new Error(`infoGroup don't have ${currentGroup}.`)
+      }
+
+      const [key, value] = val.split(':')
+      infoGroup[currentGroup][this.formatNodeInfoKey(key)] = value
+    }
+
+    return infoGroup
+  }
+
+  isCommandFailed (stdout) {
+    return stdout.indexOf('ERR') === 0
+  }
+
+  formatNodeInfoKey (str) {
+    return str.replace(/_/g, ' ').toUpperCase()
+  }
 }
 
-module.exports = {
-  addNode,
-  createCluster,
-  getClusterNodeInfo,
-  getClusterNodes,
-  rebalance,
-  replicate
-}
+module.exports = new RedisCli()

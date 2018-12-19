@@ -6,9 +6,59 @@ let nodes = []
 connectCluster('127.0.0.1:7001')
 window.localStorage.debug = 'redis-cluster-ui:*'
 
-// $('button.create-cluster').click(() => {
-//   $('.ui.modal textarea').val(['127.0.0.1:7001', '127.0.0.1:7002', '127.0.0.1:7003'].join('\n'))
-// })
+$('button.connect-server').click(() => {
+  const $content = $(`
+    <div class="description">
+        <form class="ui large form">
+            <div class="ui stacked segment">
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="desktop icon"></i>
+                        <input type="text" name="host" placeholder="Host">
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="user icon"></i>
+                        <input type="text" name="user" placeholder="User">
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="key icon"></i>
+                        <input type="text" name="key" placeholder="SSH Key">
+                        <i class="folder open link icon" style="left: auto; right: .5em"></i>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="plug icon"></i>
+                        <input type="text" name="port" placeholder="SSH Port" value="22">
+                    </div>
+                </div>
+            </div>
+  
+            <div class="ui error message"></div>
+  
+        </form>
+    </div>
+  `)
+
+  const $modal = createModal({
+    body: $content,
+    title: 'Connect to Remote Server'
+  })
+
+  $modal
+    .modal('show')
+    .modal({
+      onApprove: function () {
+        const [host, user, key, port] = $content.map(function () { return this.value }).get()
+        connectServer(host, port, user, null, key).catch(errorHandler)
+      }
+    })
+})
+
 $('button.create-cluster').click(() => {
   const $content = $(`
     <div class="description">
@@ -100,6 +150,10 @@ $('button.rebalance').click(() => {
 emitter.on('addLink', (from, to) => {
   addLink(from, to).catch(errorHandler)
 })
+
+async function connectServer (host, port, user, password, key) {
+  return redis.setupSSHTunnel(host, port, user, password, key)
+}
 
 async function createCluster (tuples) {
   await redis.createCluster(tuples)
