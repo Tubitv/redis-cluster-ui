@@ -1,3 +1,5 @@
+const os = require('os')
+const { remote: { dialog } } = require('electron')
 const redis = require('./redis')
 const { draw, emitter } = require('./topology')
 
@@ -6,9 +8,20 @@ let nodes = []
 connectCluster('127.0.0.1:7001')
 window.localStorage.debug = 'redis-cluster-ui:*'
 
-// $('button.create-cluster').click(() => {
-//   $('.ui.modal textarea').val(['127.0.0.1:7001', '127.0.0.1:7002', '127.0.0.1:7003'].join('\n'))
-// })
+$('button.connect-server').click(() => {
+  $('.ui.modal.connect').modal('show')
+})
+
+$('.folder.open.icon').click(() => {
+  dialog.showOpenDialog({
+    title: 'Select SSH private key',
+    defaultPath: `${os.homedir()}/.ssh`,
+    properties: ['openFile', 'showHiddenFiles']
+  }, filePaths => {
+    console.log(filePaths)
+  })
+})
+
 $('button.create-cluster').click(showModal('Create Cluster', (content) => {
   const tuples = content.split(/\s+/).map(s => s.trim())
   createCluster(tuples).catch(errorHandler)
@@ -69,10 +82,10 @@ function errorHandler (err) {
 
 function showModal (action, callback) {
   return function () {
-    $('.ui.modal .header').html(action)
-    $('.ui.modal .actions .right').html(action)
-    $('.ui.modal textarea').val('')
-    $('.ui.modal')
+    $('.ui.modal.tuple .header').html(action)
+    $('.ui.modal.tuple .actions .right').html(action)
+    $('.ui.modal.tuple textarea').val('')
+    $('.ui.modal.tuple')
       .modal('show')
       .modal({
         onApprove: function () {

@@ -9,16 +9,19 @@
 
 <div class="ui fixed inverted tiny menu">
     <a href="#" class="item">
-        <button class="ui orange button create-cluster">Create Cluster</button>
-    </a>
-    <a href="#" class="item">
-        <button class="ui button connect-cluster">Connect Cluster</button>
+        <button class="ui orange button connect-server">Connect to Remote Server</button>
     </a>
 </div>
 
 <div class="ui grid">
     <div class="four wide column" style="padding: 30px;">
         <div class="ui items">
+            <div class="item">
+                <button class="ui button create-cluster">Create Cluster</button>
+            </div>
+            <div class="item">
+                <button class="ui button connect-cluster">Connect Cluster</button>
+            </div>
             <div class="item">
                 <button class="ui button add-node">Add Node</button>
             </div>
@@ -32,7 +35,52 @@
     </div>
 </div>
 
-<div class="ui modal">
+<div class="ui modal connect">
+    <div class="header">
+        Connect to Remote Server
+    </div>
+    <div class="content">
+        <div class="description">
+            <form class="ui large form">
+                <div class="ui stacked segment">
+                    <div class="field">
+                        <div class="ui left icon input">
+                            <i class="desktop icon"></i>
+                            <input type="text" name="host" placeholder="Host">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui left icon input">
+                            <i class="user icon"></i>
+                            <input type="text" name="user" placeholder="User">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui left icon input">
+                            <i class="key icon"></i>
+                            <input type="text" name="key" placeholder="SSH Key">
+                            <i class="folder open link icon" style="left: auto; right: .5em"></i>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui left icon input">
+                            <i class="plug icon"></i>
+                            <input type="text" name="port" placeholder="SSH Port" value="22">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ui error message"></div>
+
+            </form>
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui black deny button">Cancel</div>
+        <div class="ui positive right button">Connect</div>
+    </div>
+</div>
+<div class="ui modal tuple">
     <div class="header">
         Create Cluster
     </div>
@@ -40,19 +88,15 @@
         <div class="description">
             <div class="ui form">
                 <div class="field">
-                    <label>Redis Host:Port tuples</label>
+                    <label>Redis Host:Port</label>
                     <textarea></textarea>
                 </div>
             </div>
         </div>
     </div>
     <div class="actions">
-        <div class="ui black deny button">
-            Cancel
-        </div>
-        <div class="ui positive right button">
-            Create Cluster
-        </div>
+        <div class="ui black deny button">Cancel</div>
+        <div class="ui positive right button"></div>
     </div>
 </div>
 
