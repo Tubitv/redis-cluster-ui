@@ -2,8 +2,7 @@
 
 ### Development
 
-Install redis-server, then
-
+    brew install redis
     npm install
     npm start
 
