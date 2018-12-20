@@ -15,10 +15,10 @@
   "dependencies": {
     "debug": "^4.1.0",
     "electron": "^3.0.13",
+    "fastdom": "^1.0.8",
     "ioredis": "^4.3.1",
     "lodash": "^4.17.11",
-    "ssh2": "^0.6.1",
-    "tmp": "^0.0.33"
+    "ssh2": "^0.6.1"
   },
   "devDependencies": {
     "husky": "^1.3.0",
