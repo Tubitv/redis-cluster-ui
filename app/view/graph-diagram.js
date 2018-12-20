@@ -195,6 +195,9 @@ module.exports = class GraphDiagram extends EventEmitter {
           .select('.axis.y')
           .duration(750)
           .call(axisY)
+
+        const scrollTop = $content.scrollTop()
+        $content.scrollTop(scrollTop)
       }
     }
   }
