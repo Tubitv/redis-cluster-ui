@@ -1,5 +1,5 @@
 const { remote } = require('electron')
-const { os } = require('os')
+const os = require('os')
 
 const connectServer = require('../action/connect-server')
 const modal = require('../component/modal')
@@ -68,7 +68,7 @@ $trigger.click(() => {
     onApprove: () => {
       const [host, user, key, port] = $content
         .find('input')
-        .map(() => this.value)
+        .map(function () { return this.value })
         .get()
 
       connectServer(host, port, user, null, key)

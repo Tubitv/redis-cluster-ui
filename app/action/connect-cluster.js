@@ -10,6 +10,6 @@ module.exports = async (input) => {
       cluster.setNodes(clusterNodes)
     }
   } catch (err) {
-    windowAlert(`${err.stdout}\n${err.stderr}`)
+    windowAlert(err.message)
   }
 }

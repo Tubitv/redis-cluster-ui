@@ -9,6 +9,6 @@ module.exports = async (input) => {
       await redis.addNode(input, clusterNodes[0].tuple)
     }
   } catch (err) {
-    windowAlert(`${err.stdout}\n${err.stderr}`)
+    windowAlert(err.message)
   }
 }
