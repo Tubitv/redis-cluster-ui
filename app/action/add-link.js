@@ -5,6 +5,6 @@ module.exports = async (from, to) => {
   try {
     await redis.replicate(from.tuple, to.id)
   } catch (err) {
-    windowAlert(`${err.stdout}\n${err.stderr}`)
+    windowAlert(err.message)
   }
 }

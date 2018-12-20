@@ -8,10 +8,11 @@ const localExecAsync = util.promisify(exec)
 
 class CommandError extends Error {
   constructor (command, code, stdout, stderr) {
-    super(`Command failed: ${command}`)
+    super()
     this.code = code
     this.stdout = stdout
     this.stderr = stderr
+    this.message = [`Command failed: ${command}`, (this.stdout || ''), (this.stderr || '')].join('\n')
   }
 }
 
@@ -90,6 +91,17 @@ class RedisService {
     const { stdout, stderr } = await this._execAsync(command)
 
     if (this._isCommandFailed(stdout)) throw new CommandError(command, 0, stdout, stderr)
+
+    return stdout
+  }
+
+  async rebalance (tuple) {
+    const command = `redis-cli --cluster rebalance ${tuple} --cluster-use-empty-masters`
+    const { stdout, stderr } = await this._execAsync(command)
+
+    if (this._isCommandFailed(stdout)) {
+      throw new CommandError(command, 0, stdout, stderr)
+    }
 
     return stdout
   }

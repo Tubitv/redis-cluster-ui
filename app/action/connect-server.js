@@ -5,6 +5,6 @@ module.exports = async (host, port, user, password, key) => {
   try {
     await redis.setupSSHTunnel(host, port, user, password, key)
   } catch (err) {
-    windowAlert(`${err.stdout}\n${err.stderr}`)
+    windowAlert(err.message)
   }
 }

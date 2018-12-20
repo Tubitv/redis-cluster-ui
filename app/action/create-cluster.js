@@ -7,6 +7,6 @@ module.exports = async (tuples) => {
     await redis.createCluster(tuples)
     if (tuples.length) await connectCluster(tuples[0])
   } catch (err) {
-    windowAlert(`${err.stdout}\n${err.stderr}`)
+    windowAlert(err.message)
   }
 }
