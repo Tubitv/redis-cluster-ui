@@ -7,35 +7,29 @@
     <link rel="stylesheet" href="./main.css" />
   </head>
   <body>
-    <div class="ui fixed inverted tiny menu">
-      <button class="ui orange button connect-server">
-        Connect to Remote Server
-      </button>
-    </div>
-    <div class="ui grid">
-      <div class="four wide column" style="padding: 30px;">
-        <div class="ui items">
-          <div class="item">
-            <button class="ui button create-cluster">Create Cluster</button>
-          </div>
-          <div class="item">
-            <button class="ui button connect-cluster">Connect Cluster</button>
-          </div>
-          <div class="item">
-            <button class="ui button add-node">Add Node</button>
-          </div>
-          <div class="item">
-            <button class="ui button rebalance">Rebalance</button>
+    <header class="ui inverted padded vertical segment" style="display: block">
+      <div class="ui container grid">
+        <div class="four wide column"><h1>Redis Cluster UI</h1></div>
+        <div class="twelve wide column">
+          <div class="ui buttons right floated">
+            <button class="ui button attached orange" id="connect-server">Connect to Remote Server</button>
+            <button class="ui button attached" id="connect-cluster">Connect Cluster</button>
+            <button class="ui button attached" id="create-cluster">Create Cluster</button>
+            <button class="ui button attached" id="add-node">Add Node</button>
+            <button class="ui button attached" id="rebalance">Rebalance</button>
           </div>
         </div>
       </div>
-      <div class="twelve wide column">
-        <div class="topology"></div>
-      </div>
-    </div>
+    </header>
+    <main class="ui container" id="renderer" style="display: block">
+      <div class="ui container center aligned" id="graph-node"></div>
+    </main>
+    <footer class="ui container center aligned" style="display: block">
+      <small><code>© 2018 Tubi, Inc., built with <3</code></small>
+    </footer>
     <script>window.$ = window.jQuery = require('./vendor/jquery-v3.3.1.min.js')</script>
     <script src="./vendor/semantic-v2.4.2.min.js"></script>
     <script src="./vendor/d3-v5.7.0.min.js"></script>
-    <script>require("./renderer.js")</script>
+    <script>require('./renderer.js')</script>
   </body>
 </html>

@@ -1,7 +1,5 @@
 const { app, BrowserWindow } = require('electron')
 
-const shared = require('./shared')
-
 app.on('ready', () => {
   let mainWindow = new BrowserWindow({
     height: 728,
@@ -15,8 +13,7 @@ app.on('ready', () => {
     mainWindow.show()
   })
 
-  mainWindow.on('closed', function () {
-    shared.tmpDir.removeCallback()
+  mainWindow.on('closed', () => {
     mainWindow = null
   })
 })
