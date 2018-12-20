@@ -51,6 +51,10 @@ clusterService.on('update', (clusterNodes) => {
   canvas.update(clusterNodes)
 })
 
+clusterService.on('reset', (clusterNodes) => {
+  canvas.update(clusterNodes)
+})
+
 canvas.on('update', (clusterNodes, clusterLinks) => {
   graphTopology.update(clusterNodes, clusterLinks)
 })

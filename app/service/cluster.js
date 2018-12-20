@@ -33,7 +33,7 @@ class ClusterService extends EventEmitter {
   reset () {
     this.nodes = []
     this.tuple = null
-    this.emit('reset')
+    this.emit('reset', this.nodes)
   }
 }
 
