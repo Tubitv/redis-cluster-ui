@@ -1,6 +1,7 @@
-const os = require('os')
 const { remote: { dialog } } = require('electron')
-const redis = require('./redis')
+const os = require('os')
+
+const redis = require('./service/redis')
 const { draw, emitter, createDiagram, updateDiagram } = require('./topology')
 
 let nodes = []
@@ -11,49 +12,52 @@ window.localStorage.debug = 'redis-cluster-ui:*'
 $('button.connect-server').click(() => {
   const $content = $(`
     <div class="description">
-        <form class="ui large form">
-            <div class="ui stacked segment">
-                <div class="field">
-                    <div class="ui left icon input">
-                        <i class="desktop icon"></i>
-                        <input type="text" name="host" placeholder="Host">
-                    </div>
-                </div>
-                <div class="field">
-                    <div class="ui left icon input">
-                        <i class="user icon"></i>
-                        <input type="text" name="user" placeholder="User">
-                    </div>
-                </div>
-                <div class="field">
-                    <div class="ui left icon input">
-                        <i class="key icon"></i>
-                        <input type="text" name="key" placeholder="SSH Key">
-                        <i class="folder open link icon" style="left: auto; right: .5em"></i>
-                    </div>
-                </div>
-                <div class="field">
-                    <div class="ui left icon input">
-                        <i class="plug icon"></i>
-                        <input type="text" name="port" placeholder="SSH Port" value="22">
-                    </div>
-                </div>
+      <form class="ui large form">
+        <div class="ui stacked segment">
+          <div class="field">
+            <div class="ui left icon input">
+              <i class="desktop icon"></i>
+              <input type="text" name="host" placeholder="Host" />
             </div>
-            <div class="ui error message"></div>
-        </form>
+          </div>
+          <div class="field">
+            <div class="ui left icon input">
+              <i class="user icon"></i>
+              <input type="text" name="user" placeholder="User" />
+            </div>
+          </div>
+          <div class="field">
+            <div class="ui left icon input">
+              <i class="key icon"></i>
+              <input type="text" name="key" placeholder="SSH Key" />
+              <i class="folder open link icon" style="left: auto; right: .5em"></i>
+            </div>
+          </div>
+          <div class="field">
+            <div class="ui left icon input">
+              <i class="plug icon"></i>
+              <input type="text" name="port" placeholder="SSH Port" value="22" />
+            </div>
+          </div>
+        </div>
+        <div class="ui error message"></div>
+      </form>
     </div>
   `)
 
   $content.find('.folder.open.icon').click(() => {
-    dialog.showOpenDialog({
-      title: 'Select SSH private key',
-      defaultPath: `${os.homedir()}/.ssh`,
-      properties: ['openFile', 'showHiddenFiles']
-    }, filePaths => {
-      if (filePaths && filePaths[0]) {
-        $content.find('input[name="key"]').val(filePaths[0])
+    dialog.showOpenDialog(
+      {
+        title: 'Select SSH private key',
+        defaultPath: `${os.homedir()}/.ssh`,
+        properties: ['openFile', 'showHiddenFiles']
+      },
+      (filePaths) => {
+        if (filePaths && filePaths[0]) {
+          $content.find('input[name="key"]').val(filePaths[0])
+        }
       }
-    })
+    )
   })
 
   const $modal = createModal({
@@ -61,14 +65,17 @@ $('button.connect-server').click(() => {
     title: 'Connect to Remote Server'
   })
 
-  $modal
-    .modal('show')
-    .modal({
-      onApprove: function () {
-        const [host, user, key, port] = $content.find('input').map(function () { return this.value }).get()
-        connectServer(host, port, user, null, key).catch(errorHandler)
-      }
-    })
+  $modal.modal('show').modal({
+    onApprove: function () {
+      const [host, user, key, port] = $content
+        .find('input')
+        .map(function () {
+          return this.value
+        })
+        .get()
+      connectServer(host, port, user, null, key).catch(errorHandler)
+    }
+  })
 })
 
 $('button.create-cluster').click(() => {
@@ -91,8 +98,11 @@ $('button.create-cluster').click(() => {
   $modal
     .modal({
       onApprove: function () {
-        const content = $content.find('textarea').val().trim()
-        const tuples = content.split(/\s+/).map(s => s.trim())
+        const content = $content
+          .find('textarea')
+          .val()
+          .trim()
+        const tuples = content.split(/\s+/).map((s) => s.trim())
         createCluster(tuples).catch(errorHandler)
       }
     })
@@ -119,7 +129,10 @@ $('button.connect-cluster').click(() => {
   $modal
     .modal({
       onApprove: function () {
-        const content = $content.find('textarea').val().trim()
+        const content = $content
+          .find('textarea')
+          .val()
+          .trim()
         connectCluster(content).catch(errorHandler)
       }
     })
@@ -146,7 +159,10 @@ $('button.add-node').click(() => {
   $modal
     .modal({
       onApprove: function () {
-        const content = $content.find('textarea').val().trim()
+        const content = $content
+          .find('textarea')
+          .val()
+          .trim()
         addNode(content).catch(errorHandler)
       }
     })
@@ -294,7 +310,10 @@ function render (nodes) {
 
         interval = setInterval(async () => {
           const allInfo = await redis.readAllInfoByNode(node.tuple)
-          const allResults = allInfo.map((v) => ({ date: new Date(parseInt(v.date, 10)), value: convertContentIntoObject(v.content) }))
+          const allResults = allInfo.map((v) => ({
+            date: new Date(parseInt(v.date, 10)),
+            value: convertContentIntoObject(v.content)
+          }))
 
           const usedSystemCPUData = allResults.map((v) => Object.assign({}, v, { value: v.value['used_cpu_sys'] }))
           updateDiagram(Object.assign({}, usedSystemCPUOption, usedSystemCPUDiagram, { data: usedSystemCPUData }))
@@ -330,10 +349,14 @@ function createModal (opt) {
 
   $modal.addClass(className)
 
-  $modal.find('.actions').append(action != null ? action : `
+  $modal.find('.actions').append(
+    action != null
+      ? action
+      : `
     <button class="ui black deny button" type="button">Cancel</button>
     <button class="ui positive right button" type="button">OK</button>
-  `)
+  `
+  )
 
   $modal.find('.header').append(title)
   $modal.find('.content').append(body)

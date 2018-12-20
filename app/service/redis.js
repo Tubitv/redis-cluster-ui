@@ -5,7 +5,7 @@ const path = require('path')
 const { Client } = require('ssh2')
 const util = require('util')
 
-const shared = require('./shared')
+const shared = require('../shared')
 
 const localExecAsync = util.promisify(exec)
 
