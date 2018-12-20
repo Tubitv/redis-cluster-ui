@@ -29,6 +29,12 @@ class ClusterService extends EventEmitter {
   setTuple (newTuple) {
     this.tuple = newTuple
   }
+
+  reset () {
+    this.nodes = []
+    this.tuple = null
+    this.emit('reset')
+  }
 }
 
 module.exports = new ClusterService()

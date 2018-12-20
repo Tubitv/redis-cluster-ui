@@ -1,9 +1,11 @@
 const windowAlert = require('../helper/window-alert')
-const redis = require('../service/redis')
+const clusterService = require('../service/cluster')
+const redisService = require('../service/redis')
 
 module.exports = async (host, port, user, password, key) => {
   try {
-    await redis.setupSSHTunnel(host, port, user, password, key)
+    await redisService.setupSSHTunnel(host, port, user, password, key)
+    clusterService.reset()
   } catch (err) {
     windowAlert(err.message)
   }
