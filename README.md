@@ -1,9 +1,9 @@
-## Redis-Cluster-UI
+# Redis Cluster UI
 
-### Development
+Native UI app for easily managing Redis Cluster
 
-    brew install redis
-    npm install
-    npm start
+## Getting Started
 
-    cd ./playground && ./start.sh
+* `brew install redis`
+* `cd ./playground && ./start.sh`
+* `npm install && npm start`
